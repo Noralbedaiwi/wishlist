@@ -51,3 +51,39 @@ def user_logout(request):
     logout(request)
 
     return redirect('item-list')
+
+
+
+def item_favorite(request, item_id):
+    item_object = Item.objects.get(id=item_id)
+    if request.user.is_anonymous:
+        return redirent('user-login')
+    
+    favorite, created = FavoriteItem.objects.get_or_create(user=request.user, item=item_object)
+    if created:
+        action = "favorite"
+    else:
+        favorite.delete()
+        action="unfavorite"
+    
+    response = {
+        "action": action,
+    }
+    return JsonResponse(response, safe=False)
+
+def wishlist(request):
+    wishlist = []
+    items = Item.objects.all()
+    query = request.GET.get('q')
+    if query:
+        items = Item.objects.filter(name__contains=query)
+    if request.user.is_authenticated:
+        favorite_objects = request.user.favoriteitem_set.all()
+    for item in items:
+        for favorite in favorite_objects:
+            if item.id == favorite.item_id:
+                wishlist.append(item)
+    context = {
+        "wishlist": wishlist
+    }
+    return render(request, 'wishlist.html', context)
